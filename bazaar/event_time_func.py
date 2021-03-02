@@ -2,26 +2,12 @@ import random
 from typing import List, Dict
 from habitant_class import Habitant
 from house_class import House
-from sql_generation_func import *
+from places_class import *
+from shop_func import *
+from social_func import *
+from relationship_sql_func import *
 
-def meet_someone(people : List, conn):
-    for someone in people:
-        new = random.randint(0, len(people) - 1)
-        if someone.last_name is people[new].last_name and someone.first_name is people[new].first_name:
-            return
-        if check_relationship(conn, someone.last_name, people[new].last_name, someone.first_name, people[new].first_name) == 1:
-            return
-        else:
-            pos = random.randint(0, 1)
-            # print(someone.last_name, people[new].last_name, someone.first_name, people[new].first_name, check_relationship(someone.last_name, people[new].last_name, someone.first_name, people[new].first_name))
-            if pos == 1:
-                rel = 30
-            else:
-                rel = -30
-            create_relationship(conn, someone.last_name, people[new].last_name, someone.first_name, people[new].first_name, 0, 0, rel)
-            create_relationship(conn, people[new].last_name, someone.last_name, people[new].first_name, someone.first_name, 0, 0, rel)
-
-def school_day(students : List, conn):
+def school_day(students : List, conn, town):
     skip_school = []
     at_school = []
     for child in students:
@@ -33,29 +19,65 @@ def school_day(students : List, conn):
     for child in at_school:
         meet_someone(at_school, conn)
 
-def work_day(workers : List, conn):
-    print(workers)
+def work_day(workers : List, conn, town):
+    sawmill = []
     for people in workers:
+        if people.workplace == "Sawmill":
+            sawmill.append(people)
         meet_someone(workers, conn)
+    workday_sawmill = Sawmill([0, 3], sawmill)
+    workday_sawmill.check_accident(conn, town)
 
-def day_status(town : List, conn):
+def idle_day(people : List, conn, town):
+    for someone in people:
+        roll = random.randint(0, 100)
+        if roll < 10:
+            visit_shop(someone)
+
+def lunch_break(customers, conn):
+    pass
+
+def what_do_weekday(town : List, conn):
     school = []
     work = []
+    idle = []
+    lunch = []
     for house in town:
         for hab in house.habs:
-            hab.status += random.randint(-1, 1)
-            if hab.age < 18:
+            if hab.age_categ == 0:
                 school.append(hab)
-            else:
+            elif hab.age_categ == 1:
                 work.append(hab)
-    for house1 in town:
-        for i in house.habs:
-                for j in house.habs:
-                    if i != j:
-                        mod = random.randint(-10, 10)
-                        update_relationship(i.last_name, j.last_name, i.first_name, j.first_name, mod)
-    work_day(work, conn)
-    school_day(school, conn)
+            else:
+                idle.append(hab)
+    for someone in work:
+        roll = random.randint(0, 100)
+        if roll < 33:
+            lunch.append(someone)
+    for someone in idle:
+        roll = random.randint(0, 100)
+        if roll < 33:
+            lunch.append(someone)
+    school_day(school, conn, town)
+    work_day(work, conn, town)
+    idle_day(idle, conn, town)
+    lunch_break(lunch, conn)
 
-def visit_shop(self, habitant : Habitant):
-    habitant.is_customer = True
+def weekday(town : List, conn):
+    cemetary = []
+    what_do_weekday(town, conn)
+    # check death
+    for house in town:
+        for hab in house.habs:
+            if hab.is_dead is True:
+                house.habs.remove(hab)
+                cemetary.append(hab)
+    # check if relatives know of death
+    # apply status modification and relationship movements
+    for house in town:
+        for i in house.habs:
+            i.status += random.randint(-1, 1)
+            for j in house.habs:
+                if i != j:
+                    mod = random.randint(-10, 10)
+                    update_relationship(i.last_name, j.last_name, i.first_name, j.first_name, mod)

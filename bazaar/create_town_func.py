@@ -3,12 +3,34 @@ import csv
 from typing import List, Dict
 from house_class import House
 from habitant_class import Habitant
-from sql_generation_func import *
+from relationship_sql_func import *
+
+def generate_worplace(town : List):
+    for house in town:
+        for citizen in house.habs:
+            if citizen.age_categ == 1:
+                roll = random.randint(0, 100)
+                if citizen.sex == 0:
+                    if roll > 33:
+                        citizen.workplace = "Sawmill"
+                    else:
+                        citizen.worplace = "Department store"
+                else:
+                    if roll > 33:
+                        citizen.workplace = "Department store"
+                    else:
+                        citizen.worplace = "Sawmill"
 
 def generate_citizen(l_name : str, sex : int, child : int = 0) -> Habitant:
-    a = random.randint(18, 80)
     if child == 1:
         a = random.randint(0, 18)
+        a_c = 0
+    else:
+        a = random.randint(18, 80)
+        if a > 60:
+            a_c = 2
+        else:
+            a_c = 1
     stat = random.uniform(0, 4)
     if sex == 0:
         file_name= "name_bazaar_male.csv"
@@ -17,7 +39,7 @@ def generate_citizen(l_name : str, sex : int, child : int = 0) -> Habitant:
     input_file = csv.DictReader(open(file_name))
     list_dict : List = list(input_file)
     f_name : str = list_dict[random.randint(0,len(list_dict)-1)]["first_name"] 
-    return Habitant(l_name, f_name, a, sex, stat, 0)
+    return Habitant(l_name, f_name, a, a_c, sex, stat, 0, "none")
         
 def generate_house(h_name, h_type, habs):
     return House(h_name, h_type, habs)
